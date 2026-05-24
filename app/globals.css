@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@layer theme {
+  :root {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --primary: 265 85% 60%;
+    --secondary: 195 85% 55%;
+    --accent: 40 85% 55%;
+    --muted: 0 0% 30%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+  }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 8%;
+    --card: 0 0% 100%;
+    --muted: 0 0% 85%;
+    --border: 0 0% 90%;
+    --input: 0 0% 95%;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
+  }
+}
+
+@layer components {
+  .gradient-primary {
+    @apply bg-gradient-to-br from-purple-600 to-purple-900;
+  }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-br from-blue-500 to-blue-900;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-br from-pink-500 to-pink-900;
+  }
+
+  .gradient-success {
+    @apply bg-gradient-to-br from-green-500 to-green-900;
+  }
+
+  .gradient-warning {
+    @apply bg-gradient-to-br from-orange-500 to-orange-900;
+  }
+
+  .card-premium {
+    @apply rounded-xl border shadow-lg transition-all duration-300 hover:shadow-xl;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--card));
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-semibold transition-all hover:opacity-90 active:scale-95 text-white;
+    background-color: hsl(var(--primary));
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-semibold transition-all hover:opacity-90 active:scale-95 text-white;
+    background-color: hsl(var(--secondary));
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-semibold transition-all hover:opacity-90 active:scale-95;
+    background-color: hsl(var(--accent));
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold text-white;
+    background-color: hsl(var(--primary));
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center gap-1 rounded-full bg-orange-600 px-3 py-1 text-sm font-semibold text-white;
+  }
+}
