@@ -1,25 +1,23 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Card, CardHeader, CardBody } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Users, Mic, MicOff, Video, VideoOff, Share2, Send, Phone, Loader } from 'lucide-react'
+import { Mic, MicOff, Video, VideoOff, Send, Phone, Loader, MoreVertical } from 'lucide-react'
 
 interface RoomPageProps {
-  params: {
+  params: Promise<{
     code: string
-  }
+  }>
 }
 
 interface Message {
-  id: number
-  user: string
+  _id?: string
+  username: string
   message: string
   timestamp: Date
 }
 
 export default function RoomPage({ params }: RoomPageProps) {
+  const [roomCode, setRoomCode] = useState('')
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOn, setIsVideoOn] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
@@ -28,13 +26,18 @@ export default function RoomPage({ params }: RoomPageProps) {
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Unwrap params promise
+  useEffect(() => {
+    params.then(p => setRoomCode(p.code))
+  }, [params])
+
   // Load messages on mount
   useEffect(() => {
+    if (!roomCode) return
     loadMessages()
-    // Simulate real-time updates
-    const interval = setInterval(loadMessages, 3000)
+    const interval = setInterval(loadMessages, 2000)
     return () => clearInterval(interval)
-  }, [params.code])
+  }, [roomCode])
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -43,13 +46,14 @@ export default function RoomPage({ params }: RoomPageProps) {
 
   const loadMessages = async () => {
     try {
-      const response = await fetch(`/api/rooms/${params.code}/messages`)
+      const response = await fetch(`/api/rooms/${roomCode}/messages`)
       if (!response.ok) throw new Error('Failed to load messages')
       const data = await response.json()
-      setMessages(data.messages)
+      setMessages(data.messages || [])
       setLoading(false)
     } catch (err) {
       console.error('[v0] Error loading messages:', err)
+      setLoading(false)
     }
   }
 
@@ -59,11 +63,11 @@ export default function RoomPage({ params }: RoomPageProps) {
 
     try {
       setSending(true)
-      const response = await fetch(`/api/rooms/${params.code}/messages`, {
+      const response = await fetch(`/api/rooms/${roomCode}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user: 'You',
+          username: 'You',
           message: newMessage,
           userId: 'current_user',
         }),
@@ -80,139 +84,181 @@ export default function RoomPage({ params }: RoomPageProps) {
   }
 
   const participants = [
-    { id: 1, name: 'You', isAudio: !isMuted, isVideo: isVideoOn },
-    { id: 2, name: 'Alex Chen', isAudio: true, isVideo: true },
-    { id: 3, name: 'Jordan Smith', isAudio: true, isVideo: false },
-    { id: 4, name: 'Taylor Brown', isAudio: false, isVideo: true },
+    { id: 1, name: 'You', isAudio: !isMuted, isVideo: isVideoOn, online: true },
+    { id: 2, name: 'Alex', isAudio: true, isVideo: true, online: true },
+    { id: 3, name: 'Jordan', isAudio: true, isVideo: false, online: true },
+    { id: 4, name: 'Taylor', isAudio: false, isVideo: true, online: false },
   ]
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const formatTime = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
   return (
-    <div className="h-full flex flex-col gap-4">
-      {/* Video Grid */}
-      <div className="flex-1 grid grid-cols-2 gap-4 auto-rows-max">
-        {participants.map((participant) => (
-          <div
-            key={participant.id}
-            className="relative rounded-lg overflow-hidden aspect-video"
-            style={{
-              backgroundColor: 'hsl(var(--input))',
-            }}
-          >
-            {/* Video Placeholder */}
-            <div className="w-full h-full flex items-center justify-center">
-              {participant.isVideo ? (
-                <div className="text-center">
-                  <Video size={32} className="mx-auto mb-2" style={{ color: 'hsl(var(--primary))' }} />
-                  <p className="text-sm">{participant.name}</p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <Users size={32} className="mx-auto mb-2" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm">{participant.name}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Status Indicators */}
-            <div className="absolute top-2 right-2 flex gap-1">
-              {participant.isAudio ? (
-                <div className="p-1 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}>
-                  <Mic size={14} className="text-white" />
-                </div>
-              ) : (
-                <div className="p-1 rounded-full bg-red-600">
-                  <MicOff size={14} className="text-white" />
-                </div>
-              )}
-            </div>
-
-            {/* Name Badge */}
-            <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-              <p className="text-xs font-semibold text-white">{participant.name}</p>
-            </div>
-          </div>
-        ))}
+    <div className="min-h-screen bg-[hsl(var(--background))] flex flex-col">
+      {/* Header */}
+      <div className="border-b border-[hsl(var(--border))] px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Study Room</h1>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">{roomCode}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[hsl(var(--muted-foreground))]">{participants.length} participants</span>
+          <button className="p-2 rounded-lg hover:bg-[hsl(var(--input))] transition-all">
+            <MoreVertical size={20} className="text-[hsl(var(--muted-foreground))]" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-4">
+      {/* Main Content */}
+      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+        {/* Video Grid */}
+        <div className="flex-1 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 flex-1">
+            {participants.map((participant) => (
+              <div
+                key={participant.id}
+                className="relative rounded-lg bg-[hsl(var(--input))] overflow-hidden flex items-center justify-center"
+              >
+                {/* Video Placeholder */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {participant.isVideo ? (
+                    <div className="text-center">
+                      <Video size={40} className="mx-auto mb-2 text-[hsl(var(--muted-foreground))]" />
+                      <p className="text-sm font-medium">{participant.name}</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full bg-[hsl(var(--border))] mx-auto mb-2 flex items-center justify-center">
+                        <span className="text-xl font-semibold">{participant.name[0]}</span>
+                      </div>
+                      <p className="text-sm font-medium">{participant.name}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Indicators */}
+                <div className="absolute top-3 right-3 flex gap-2">
+                  {participant.isAudio ? (
+                    <div className="p-1.5 rounded-full bg-[hsl(var(--primary))]">
+                      <Mic size={12} className="text-white" />
+                    </div>
+                  ) : (
+                    <div className="p-1.5 rounded-full bg-red-500">
+                      <MicOff size={12} className="text-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Online Status */}
+                <div className="absolute top-3 left-3">
+                  <div className={`w-2 h-2 rounded-full ${participant.online ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-3 bg-[hsl(var(--card))] rounded-lg p-4 border border-[hsl(var(--border))]">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className={`p-3 rounded-lg transition-all ${
+                isMuted 
+                  ? 'bg-red-500/10 text-red-500' 
+                  : 'bg-[hsl(var(--input))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
+              }`}
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
+
+            <button
+              onClick={() => setIsVideoOn(!isVideoOn)}
+              className={`p-3 rounded-lg transition-all ${
+                !isVideoOn 
+                  ? 'bg-red-500/10 text-red-500' 
+                  : 'bg-[hsl(var(--input))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
+              }`}
+              title={isVideoOn ? 'Stop video' : 'Start video'}
+            >
+              {isVideoOn ? <Video size={20} /> : <VideoOff size={20} />}
+            </button>
+
+            <div className="h-6 w-px bg-[hsl(var(--border))]"></div>
+
+            <button
+              className="p-3 rounded-lg bg-[hsl(var(--input))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))] transition-all"
+              title="Screen share"
+            >
+              <Video size={20} />
+            </button>
+
+            <button
+              className="p-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all ml-auto"
+              title="Leave call"
+            >
+              <Phone size={20} />
+            </button>
+          </div>
+        </div>
+
         {/* Chat Panel */}
-        <Card className="flex-1">
-          <CardHeader>
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Users size={20} />
-              Chat
-            </h2>
-          </CardHeader>
-          <CardBody className="flex flex-col gap-4 max-h-64">
-            <div className="flex-1 overflow-auto space-y-2">
-              {loading ? (
-                <div className="flex items-center justify-center py-4 gap-2">
-                  <Loader size={16} className="animate-spin" />
-                  <span className="text-sm">Loading messages...</span>
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="text-center py-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                  <p className="text-sm">No messages yet. Start the conversation!</p>
-                </div>
-              ) : (
-                messages.map((msg) => (
-                  <div key={msg.id} className="p-2 rounded-lg" style={{ backgroundColor: 'hsl(var(--input))' }}>
-                    <p className="font-semibold text-sm">{msg.user}</p>
-                    <p className="text-sm">{msg.message}</p>
-                    <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
+        <div className="w-80 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col overflow-hidden">
+          {/* Chat Header */}
+          <div className="border-b border-[hsl(var(--border))] px-4 py-3">
+            <h2 className="font-semibold">Chat</h2>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {loading ? (
+              <div className="flex items-center justify-center py-8 gap-2">
+                <Loader size={16} className="animate-spin" />
+                <span className="text-sm text-[hsl(var(--muted-foreground))]">Loading...</span>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">
+                <p className="text-sm">No messages yet</p>
+              </div>
+            ) : (
+              messages.map((msg, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-medium text-sm">{msg.username}</span>
+                    <span className="text-xs text-[hsl(var(--muted-foreground))]">
                       {formatTime(msg.timestamp)}
-                    </p>
+                    </span>
                   </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                  <p className="text-sm text-[hsl(var(--foreground))] break-words">{msg.message}</p>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Message Input */}
+          <div className="border-t border-[hsl(var(--border))] p-3 space-y-2">
             <form onSubmit={sendMessage} className="flex gap-2">
-              <Input
+              <input
+                type="text"
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 disabled={sending}
-                className="flex-1"
+                className="flex-1 px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-1"
               />
-              <Button variant="primary" size="sm" disabled={sending}>
+              <button
+                type="submit"
+                disabled={sending || !newMessage.trim()}
+                className="p-2 rounded-lg bg-[hsl(var(--primary))] text-white hover:opacity-90 transition-all disabled:opacity-50"
+              >
                 {sending ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
-              </Button>
+              </button>
             </form>
-          </CardBody>
-        </Card>
-
-        {/* Controls */}
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() => setIsMuted(!isMuted)}
-            variant={isMuted ? 'secondary' : 'primary'}
-            size="lg"
-            className="p-4"
-          >
-            {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-          </Button>
-          <Button
-            onClick={() => setIsVideoOn(!isVideoOn)}
-            variant={isVideoOn ? 'primary' : 'secondary'}
-            size="lg"
-            className="p-4"
-          >
-            {isVideoOn ? <Video size={24} /> : <VideoOff size={24} />}
-          </Button>
-          <Button variant="secondary" size="lg" className="p-4">
-            <Share2 size={24} />
-          </Button>
-          <Button variant="secondary" size="lg" className="p-4 text-red-500">
-            <Phone size={24} />
-          </Button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-

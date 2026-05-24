@@ -1,13 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardBody, CardFooter } from '@/components/ui/card'
-import { createSupabaseClient } from '@/lib/supabase'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Loader } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,22 +18,11 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const supabase = createSupabaseClient()
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (authError) {
-        setError(authError.message)
-        return
-      }
-
-      if (data.user) {
-        router.push('/dashboard')
-      }
+      // Mock login - replace with Supabase
+      await new Promise(r => setTimeout(r, 500))
+      router.push('/dashboard')
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError('Login failed')
       console.error('[v0] Login error:', err)
     } finally {
       setLoading(false)
@@ -45,81 +30,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="text-4xl font-bold">
-          <span className="gradient-primary bg-clip-text text-transparent">Study</span>
-          <span className="gradient-secondary ml-2 bg-clip-text text-transparent">Room</span>
-        </div>
-        <p className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
-          Premium collaborative study platform
-        </p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))]">
+      <div className="w-full max-w-md">
+        {/* Card */}
+        <div className="rounded-lg border bg-[hsl(var(--card))] p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))] mb-4"></div>
+            <h1 className="text-2xl font-semibold mb-2">Welcome back</h1>
+            <p className="text-[hsl(var(--muted-foreground))] text-sm">
+              Sign in to continue your study sessions
+            </p>
+          </div>
 
-      {/* Login Card */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-2xl font-bold">Welcome Back</h2>
-          <p className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Sign in to your account to continue
-          </p>
-        </CardHeader>
-
-        <CardBody className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-red-600/10 p-3 text-sm text-red-600 border border-red-500/30">
-              {error}
-            </div>
-          )}
-
+          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              label="Email Address"
-              type="email"
-              icon={<Mail size={18} />}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Email address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 w-5 h-5 text-[hsl(var(--muted-foreground))]" />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border bg-[hsl(var(--input))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-1"
+                />
+              </div>
+            </div>
 
-            <Input
-              label="Password"
-              type="password"
-              icon={<Lock size={18} />}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 w-5 h-5 text-[hsl(var(--muted-foreground))]" />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border bg-[hsl(var(--input))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-1"
+                />
+              </div>
+            </div>
 
-            <Button
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
               type="submit"
-              variant="primary"
-              size="lg"
-              loading={loading}
-              className="w-full"
+              disabled={loading}
+              className="w-full py-2.5 rounded-lg bg-[hsl(var(--primary))] text-white font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Sign In
-              <ArrowRight className="ml-2" size={18} />
-            </Button>
+              {loading ? (
+                <>
+                  <Loader size={16} className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
+              )}
+            </button>
           </form>
-        </CardBody>
 
-        <CardFooter>
-          <p className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-semibold hover:underline" style={{ color: 'hsl(var(--primary))' }}>
-              Sign up
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="flex-1 h-px bg-[hsl(var(--border))]"></div>
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">or</span>
+            <div className="flex-1 h-px bg-[hsl(var(--border))]"></div>
+          </div>
+
+          {/* Alt Actions */}
+          <div className="space-y-2">
+            <button className="w-full py-2.5 rounded-lg border bg-white text-[hsl(var(--foreground))] font-medium hover:bg-[hsl(var(--input))] transition-all text-sm">
+              Join with Room Code
+            </button>
+            <button className="w-full py-2.5 rounded-lg border bg-white text-[hsl(var(--foreground))] font-medium hover:bg-[hsl(var(--input))] transition-all text-sm">
+              Browse Public Rooms
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 text-center text-sm">
+            <span className="text-[hsl(var(--muted-foreground))]">Don't have an account? </span>
+            <Link href="/signup" className="text-[hsl(var(--primary))] font-medium hover:underline">
+              Create one
             </Link>
-          </p>
-        </CardFooter>
-      </Card>
+          </div>
+        </div>
 
-      {/* Footer */}
-      <div className="text-center text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
-        <p>Secure and encrypted • Fast performance • Always available</p>
+        {/* Theme Toggle - Minimal */}
+        <button className="absolute top-6 right-6 p-2 rounded-lg hover:bg-[hsl(var(--input))] transition-all">
+          <div className="w-6 h-6 rounded-full border border-[hsl(var(--muted-foreground))]"></div>
+        </button>
       </div>
     </div>
   )
